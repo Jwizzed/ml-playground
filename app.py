@@ -1,22 +1,21 @@
+"""The module is uncleaned AT ALL."""
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import streamlit as st
+from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from streamlit_echarts import st_echarts
-from matplotlib.colors import LinearSegmentedColormap
 from wordcloud import WordCloud
-
 
 COLORS = ["black", "red"]
 
 st.set_page_config(
-   page_title="My App with Pink Theme",
-   page_icon=":tada:",
-   layout="wide",
-   initial_sidebar_state="expanded",
+    page_title="My App with Pink Theme",
+    page_icon=":tada:",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 
@@ -89,10 +88,8 @@ def classify_columns(df):
 def main():
     st.sidebar.title("ML Playground")
     st.sidebar.header("Navigation")
-    options = ["Main", "Exploratory Data Analysis", "Machine Learning",  "Others"]
-    # for option in options:
-    #     if st.sidebar.button(option):
-    #         choice = option
+    options = ["Main", "Exploratory Data Analysis", "Machine Learning",
+               "Others"]
 
     choice = st.sidebar.selectbox("Go to", options)
 
@@ -110,13 +107,8 @@ def main():
     if choice == "Main":
         st.title("Welcome to ML Playground")
         st.image("./assets/images/muay.png")
-        st.markdown("""
-            ML Playground is a tool designed to simplify data management tasks like:
-
-            - **Exploratory Data Analysis (EDA)**
-            - **Machine Learning Baseline**
-        """)
-
+        st.subheader(
+            "Navigation -> Exploratory Data Analysis -> Upload csv file.")
 
 
     elif choice == "Exploratory Data Analysis":
@@ -197,27 +189,18 @@ def main():
                         st.pyplot(fig)
 
                     with st.expander("View Distribution Curve Fits"):
-                        for col in numeric_columns:
-                            # fig, axes = plt.subplots(num_rows, num_cols,
-                            #                          figsize=(
-                            #                              5 * num_cols,
-                            #                              4 * num_rows))
-                            #
-                            # sns.histplot(df[col], kde=True, stat="density",
-                            #              linewidth=0, ax=axes[idx], color=COLORS[1])
-                            # axes[idx].set_title(
-                            #     f'Distribution with KDE for {col}')
-                            # plt.tight_layout()
-                            # st.pyplot(fig)
-                            fig, ax = plt.subplots(
-                                figsize=(7, 5))  # Adjust figure size as needed
+                        fig, axes = plt.subplots(num_rows, num_cols,
+                                                 figsize=(
+                                                     5 * num_cols,
+                                                     4 * num_rows))
+                        axes = axes.flatten() if num_plots > 1 else [axes]
 
-                            # Using 'ax' instead of 'axes[idx]' since we're creating one plot per loop iteration
+                        for idx, col in enumerate(numeric_columns):
                             sns.histplot(df[col], kde=True, stat="density",
-                                         linewidth=0, ax=ax,
+                                         linewidth=0, ax=axes[idx],
                                          color="#DF2E38")
-                            ax.set_title(f'Distribution with KDE for {col}')
-
+                            axes[idx].set_title(
+                                f'Distribution with KDE for {col}')
                         plt.tight_layout()
                         st.pyplot(fig)
 
@@ -249,7 +232,8 @@ def main():
 
                         mask = np.triu(np.ones_like(corr, dtype=bool))
 
-                        f, ax = plt.subplots(figsize=(11, 9))
+                        f, ax = plt.subplots(figsize=(5 * num_cols,
+                                                      4 * num_rows))
 
                         cmap = LinearSegmentedColormap.from_list(
                             'custom_diverging', COLORS,
@@ -281,16 +265,13 @@ def main():
                         if 'target' in df.columns and df[
                             'target'].dtype == 'object':
                             categories = df['target'].unique()
-                            red_palette = sns.color_palette("reds",
-                                                            len(categories))
-                            color_dict = dict(zip(categories, red_palette))
 
-                            fig, ax = plt.subplots(figsize=(7, 7))
+                            fig, ax = plt.subplots(figsize=(5 * num_cols,
+                                                            4 * num_rows))
                             for category in categories:
                                 ix = np.where(df['target'] == category)[0]
                                 ax.scatter(pca_result[ix, 0],
                                            pca_result[ix, 1],
-                                           color=color_dict[category],
                                            label=category, s=100)
                             ax.legend()
 
@@ -329,46 +310,64 @@ def main():
                 if categorical_columns:
                     st.subheader("Categorical Columns")
                     st.write(categorical_columns)
+                    red_palette = sns.color_palette([
+                        "#ff0000",
+                        "#e60000",
+                        "#cc0000",
+                        "#b30000",
+                        "#990000",
+                        "#800000",
+                        "#660000",
+                        "#4d0000",
+                        "#330000",
+                        "#1a0000"
+                    ])
 
                     with st.expander("Value Counts and Proportions"):
                         for col in categorical_columns:
                             value_counts = df[col].value_counts()
-                            labels = value_counts.index
-                            sizes = value_counts.values
+                            proportions = (
+                                                      value_counts / value_counts.sum()) * 100
 
-                            fig, ax = plt.subplots()
-                            ax.pie(sizes, labels=labels, autopct='%1.1f%%',
-                                   startangle=90, colors=plt.cm.tab20.colors)
-                            ax.axis(
-                                'equal')
+                            data = pd.DataFrame({'Labels': value_counts.index,
+                                                 'Counts': value_counts.values,
+                                                 'Proportion (%)': proportions.values})
+                            data.sort_values('Counts', ascending=True,
+                                             inplace=True)
 
-                            plt.title(f'Distribution for {col}')
+                            fig, ax = plt.subplots(figsize=(8,
+                                                            len(data) * 0.4))
+                            bars = ax.barh(data['Labels'], data['Counts'],
+                                           color=red_palette)
 
-                            st.write(f"**{col} Distribution:**")
+
+                            for bar, proportion in zip(bars,
+                                                       data['Proportion (%)']):
+                                ax.text(bar.get_width(),
+                                        bar.get_y() + bar.get_height() / 2,
+                                        f'{proportion:.1f}%',
+                                        va='center', ha='left', fontsize=8)
+
+                            ax.set_xlabel('Counts')
+                            ax.set_title(f'Distribution for {col}')
+
                             st.pyplot(fig)
 
                     with st.expander("View Categorical Data Distribution"):
                         num_plots = len(categorical_columns)
                         num_cols = min(num_plots, 2)
                         num_rows = num_plots // num_cols + (
-                                    num_plots % num_cols > 0)
+                                num_plots % num_cols > 0)
 
                         fig, axes = plt.subplots(num_rows, num_cols, figsize=(
-                        10 * num_cols, 6 * num_rows))
+                            10 * num_cols, 6 * num_rows))
                         axes = axes.flatten() if num_plots > 1 else np.array(
                             [axes])
 
                         for idx, col in enumerate(categorical_columns):
-                            sns.countplot(x=df[col], ax=axes[idx])
+                            sns.countplot(x=df[col], ax=axes[idx], palette=red_palette)
                             axes[idx].set_title(f"Count Plot for {col}")
                             axes[idx].tick_params(axis='x', rotation=45)
-
-                            total = float(len(df))
-                            for p in axes[idx].patches:
-                                height = p.get_height()
-                                axes[idx].text(p.get_x() + p.get_width() / 2.,
-                                               height + 3, '{:1.2f}%'.format(
-                                        (height / total) * 100), ha="center")
 
                         for idx in range(num_plots, len(axes)):
                             fig.delaxes(axes[idx])
@@ -396,8 +395,7 @@ def main():
                     with st.expander("Word Clouds for Text Data"):
                         for col in categorical_columns:
                             if df[col].dtype == 'object':
-                                text = ' '.join(df[
-                                                    col].dropna())
+                                text = ' '.join(df[col].dropna())
                                 wordcloud = WordCloud(width=800, height=400,
                                                       background_color='white').generate(
                                     text)
