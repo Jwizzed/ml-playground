@@ -8,60 +8,28 @@ from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from wordcloud import WordCloud
+from streamlit_echarts import st_echarts
 
 COLORS = ["black", "red"]
 
-st.set_page_config(
-    page_title="My App with Pink Theme",
-    page_icon=":tada:",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
-
-def generate_echart(categories, values, color_scheme):
+def generate_echart(categories, values, color_scheme, gtype):
+    """Generate EChart options for a basic bar chart, ensuring data is JSON serializable."""
     options = {
-        "tooltip": {
-            "trigger": 'item',
-            "formatter": '{a} <br/>{b} : {c} ({d}%)'
+        "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+        "legend": {},
+        "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
+        "xAxis": {
+            "type": "category",
+            "data": [str(category) for category in categories]
         },
-        "legend": {
-            "left": 'center',
-            "top": 'bottom',
-            "data": categories
-        },
-        "toolbox": {
-            "show": True,
-            "feature": {
-                "mark": {"show": True},
-                "dataView": {"show": True, "readOnly": False},
-                "restore": {"show": True},
-                "saveAsImage": {"show": True}
-            }
-        },
+        "yAxis": {"type": "value"},
         "series": [
             {
-                "name": 'Radius Mode',
-                "type": 'pie',
-                "radius": [20, 140],
-                "center": ['50%', '50%'],
-                "roseType": 'radius',
-                "itemStyle": {
-                    "borderRadius": 5
-                },
-                "label": {
-                    "show": False
-                },
-                "emphasis": {
-                    "label": {
-                        "show": True
-                    }
-                },
-                "data": [
-                    {"value": v, "name": c,
-                     "itemStyle": {"color": color_scheme[i]}}
-                    for i, (c, v) in enumerate(zip(categories, values))
-                ]
+                "name": "Data",
+                "type": gtype,
+                "data": [float(value) for value in values],
+                "itemStyle": {"color": color_scheme[0]}
             }
         ]
     }
@@ -405,18 +373,32 @@ def main():
                                 plt.title(f"Word Cloud for {col}")
                                 st.pyplot(plt)
 
-            # with tab4:
-            #     if not df.empty and numeric_columns:
-            #         values = [df[col].sum() or df[col].mean() for col in
-            #                   numeric_columns]
-            #         categories = numeric_columns
-            #         color_scheme = sns.color_palette('husl',
-            #                                          len(categories)).as_hex()
-            #
-            #         chart_options = generate_echart(categories, values,
-            #                                         color_scheme)
-            #
-            #         st_echarts(options=chart_options, height="400px")
+            with tab4:
+                if not df.empty and numeric_columns:
+                    values = [
+                        df[col].sum() if df[col].sum() != 0 else df[col].mean()
+                        for col in numeric_columns]
+                    categories = numeric_columns
+                    color_scheme = sns.color_palette('husl',
+                                                     len(categories)).as_hex()
+
+                    with st.expander("Bar chart"):
+                        bar_chart_options = generate_echart(categories, values,
+                                                        color_scheme, "bar")
+
+                        st_echarts(options=bar_chart_options, height="400px")
+
+                    with st.expander("Line chart"):
+                        line_chart_options = generate_echart(categories, values,
+                                                        color_scheme, "line")
+
+                        st_echarts(options=line_chart_options, height="400px")
+
+                    with st.expander("Scatter chart"):
+                        scatter_chart_options = generate_echart(categories, values,
+                                                        color_scheme, "scatter")
+
+                        st_echarts(options=scatter_chart_options, height="400px")
 
 
     elif choice == "Machine Learning":
