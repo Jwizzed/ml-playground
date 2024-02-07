@@ -1,4 +1,3 @@
-"""The module is uncleaned AT ALL."""
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -7,33 +6,11 @@ import streamlit as st
 from matplotlib.colors import LinearSegmentedColormap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from wordcloud import WordCloud
 from streamlit_echarts import st_echarts
+from wordcloud import WordCloud
+
 
 COLORS = ["black", "red"]
-
-
-def generate_echart(categories, values, color_scheme, gtype):
-    """Generate EChart options for a basic bar chart, ensuring data is JSON serializable."""
-    options = {
-        "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-        "legend": {},
-        "grid": {"left": "3%", "right": "4%", "bottom": "3%", "containLabel": True},
-        "xAxis": {
-            "type": "category",
-            "data": [str(category) for category in categories]
-        },
-        "yAxis": {"type": "value"},
-        "series": [
-            {
-                "name": "Data",
-                "type": gtype,
-                "data": [float(value) for value in values],
-                "itemStyle": {"color": color_scheme[0]}
-            }
-        ]
-    }
-    return options
 
 
 def classify_columns(df):
@@ -56,7 +33,7 @@ def classify_columns(df):
 def main():
     st.sidebar.title("ML Playground")
     st.sidebar.header("Navigation")
-    options = ["Main", "Exploratory Data Analysis", "Machine Learning",
+    options = ["Exploratory Data Analysis", "Machine Learning",
                "Others"]
 
     choice = st.sidebar.selectbox("Go to", options)
@@ -72,14 +49,7 @@ def main():
         Dive into the world of data with ease and discover insights through an intuitive interface.
     """)
 
-    if choice == "Main":
-        st.title("Welcome to ML Playground")
-        st.image("./assets/images/muay.png")
-        st.subheader(
-            "Navigation -> Exploratory Data Analysis -> Upload csv file.")
-
-
-    elif choice == "Exploratory Data Analysis":
+    if choice == "Exploratory Data Analysis":
         st.title("Exploratory Data Analysis (EDA)")
         uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
         if uploaded_file is not None:
@@ -90,7 +60,7 @@ def main():
 
             tab1, tab2, tab3, tab4 = st.tabs(
                 ["Summary Statistics", "Numerical Analysis",
-                 "Categorical Analysis", "Visualization"])
+                 "Categorical Analysis"])
 
             with tab1:
                 col1, col2, col3 = st.columns(3)
@@ -155,22 +125,7 @@ def main():
                         fig.tight_layout(
                             pad=2.0)
                         st.pyplot(fig)
-
-                    with st.expander("View Distribution Curve Fits"):
-                        fig, axes = plt.subplots(num_rows, num_cols,
-                                                 figsize=(
-                                                     5 * num_cols,
-                                                     4 * num_rows))
-                        axes = axes.flatten() if num_plots > 1 else [axes]
-
-                        for idx, col in enumerate(numeric_columns):
-                            sns.histplot(df[col], kde=True, stat="density",
-                                         linewidth=0, ax=axes[idx],
-                                         color="#DF2E38")
-                            axes[idx].set_title(
-                                f'Distribution with KDE for {col}')
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                        plt.close(fig)
 
                     with st.expander("Outlier Detection"):
                         fig, axes = plt.subplots(num_rows, num_cols, figsize=(
@@ -193,6 +148,8 @@ def main():
 
                         fig.tight_layout()
                         st.pyplot(fig)
+                        plt.close(fig)
+
 
                     with st.expander("Feature Correlation Matrix"):
 
@@ -200,8 +157,8 @@ def main():
 
                         mask = np.triu(np.ones_like(corr, dtype=bool))
 
-                        f, ax = plt.subplots(figsize=(5 * num_cols,
-                                                      4 * num_rows))
+                        fig, axes = plt.subplots(figsize=(5 * num_cols,
+                                                          4 * num_rows))
 
                         cmap = LinearSegmentedColormap.from_list(
                             'custom_diverging', COLORS,
@@ -222,7 +179,8 @@ def main():
                         plt.title('Feature Correlation Matrix',
                                   fontsize=14)
 
-                        st.pyplot(f)
+                        st.pyplot(fig)
+                        plt.close(fig)
 
                     with st.expander("PCA Analysis"):
                         scaler = StandardScaler()
@@ -257,6 +215,7 @@ def main():
                             'target'].dtype == 'object':
                             ax.legend()
                         st.pyplot(fig)
+                        plt.close(fig)
 
                         st.write(
                             f'Explained variance ratio for PC1: {pca.explained_variance_ratio_[0]:.4f}')
@@ -278,70 +237,64 @@ def main():
                 if categorical_columns:
                     st.subheader("Categorical Columns")
                     st.write(categorical_columns)
-                    red_palette = sns.color_palette([
-                        "#ff0000",
-                        "#e60000",
-                        "#cc0000",
-                        "#b30000",
-                        "#990000",
-                        "#800000",
-                        "#660000",
-                        "#4d0000",
-                        "#330000",
-                        "#1a0000"
-                    ])
 
                     with st.expander("Value Counts and Proportions"):
-                        for col in categorical_columns:
-                            value_counts = df[col].value_counts()
-                            proportions = (
-                                                      value_counts / value_counts.sum()) * 100
+                        for categorical_column in categorical_columns:
+                            value_counts = df[
+                                categorical_column].value_counts()
+                            chart_options = {
+                                "tooltip": {"trigger": "item",
+                                            "formatter": "{a} <br/>{b}: {c} ({d}%)"},
+                                "legend": {
+                                    "data": value_counts.index.tolist()},
+                                "series": [{
+                                    "name": categorical_column,
+                                    "type": "pie",
+                                    "radius": "50%",
+                                    "data": [{"value": count, "name": label}
+                                             for
+                                             label, count in
+                                             value_counts.items()]
+                                }]
+                            }
 
-                            data = pd.DataFrame({'Labels': value_counts.index,
-                                                 'Counts': value_counts.values,
-                                                 'Proportion (%)': proportions.values})
-                            data.sort_values('Counts', ascending=True,
-                                             inplace=True)
-
-                            fig, ax = plt.subplots(figsize=(8,
-                                                            len(data) * 0.4))
-                            bars = ax.barh(data['Labels'], data['Counts'],
-                                           color=red_palette)
-
-
-                            for bar, proportion in zip(bars,
-                                                       data['Proportion (%)']):
-                                ax.text(bar.get_width(),
-                                        bar.get_y() + bar.get_height() / 2,
-                                        f'{proportion:.1f}%',
-                                        va='center', ha='left', fontsize=8)
-
-                            ax.set_xlabel('Counts')
-                            ax.set_title(f'Distribution for {col}')
-
-                            st.pyplot(fig)
+                            st.subheader(f"Pie Chart for {categorical_column}")
+                            st_echarts(options=chart_options, height="400px")
 
                     with st.expander("View Categorical Data Distribution"):
-                        num_plots = len(categorical_columns)
-                        num_cols = min(num_plots, 2)
-                        num_rows = num_plots // num_cols + (
-                                num_plots % num_cols > 0)
+                        for col in categorical_columns:
+                            value_counts = df[col].value_counts()
 
-                        fig, axes = plt.subplots(num_rows, num_cols, figsize=(
-                            10 * num_cols, 6 * num_rows))
-                        axes = axes.flatten() if num_plots > 1 else np.array(
-                            [axes])
+                            # Generate a color palette for the bars
+                            color_palette = sns.color_palette("husl",
+                                                              len(value_counts))
 
-                        for idx, col in enumerate(categorical_columns):
-                            sns.countplot(x=df[col], ax=axes[idx], palette=red_palette)
-                            axes[idx].set_title(f"Count Plot for {col}")
-                            axes[idx].tick_params(axis='x', rotation=45)
+                            # Define chart options
+                            chart_options = {
+                                "tooltip": {"trigger": "axis",
+                                            "axisPointer": {"type": "shadow"}},
+                                "xAxis": {"type": "category",
+                                          "data": value_counts.index.tolist(),
+                                          "axisLabel": {"rotate": 45}},
+                                "yAxis": {"type": "value"},
+                                "series": [
+                                    {
+                                        "name": "Count",
+                                        "type": "bar",
+                                        "data": [
+                                            {"value": count, "name": label,
+                                             "itemStyle": {
+                                                 "color": color_palette[i]}}
+                                            for i, (label, count) in
+                                            enumerate(value_counts.items())],
+                                        "label": {"show": True,
+                                                  "position": "top"}
+                                    }
+                                ],
+                            }
 
-                        for idx in range(num_plots, len(axes)):
-                            fig.delaxes(axes[idx])
-
-                        fig.tight_layout(pad=3.0)
-                        st.pyplot(fig)
+                            st.subheader(f"Bar Chart for {col}")
+                            st_echarts(options=chart_options, height="400px")
 
                     if len(categorical_columns) > 1:
                         with st.expander(
@@ -367,38 +320,12 @@ def main():
                                 wordcloud = WordCloud(width=800, height=400,
                                                       background_color='white').generate(
                                     text)
-                                plt.figure(figsize=(10, 5))
-                                plt.imshow(wordcloud, interpolation='bilinear')
-                                plt.axis("off")
-                                plt.title(f"Word Cloud for {col}")
-                                st.pyplot(plt)
-
-            with tab4:
-                if not df.empty and numeric_columns:
-                    values = [
-                        df[col].sum() if df[col].sum() != 0 else df[col].mean()
-                        for col in numeric_columns]
-                    categories = numeric_columns
-                    color_scheme = sns.color_palette('husl',
-                                                     len(categories)).as_hex()
-
-                    with st.expander("Bar chart"):
-                        bar_chart_options = generate_echart(categories, values,
-                                                        color_scheme, "bar")
-
-                        st_echarts(options=bar_chart_options, height="400px")
-
-                    with st.expander("Line chart"):
-                        line_chart_options = generate_echart(categories, values,
-                                                        color_scheme, "line")
-
-                        st_echarts(options=line_chart_options, height="400px")
-
-                    with st.expander("Scatter chart"):
-                        scatter_chart_options = generate_echart(categories, values,
-                                                        color_scheme, "scatter")
-
-                        st_echarts(options=scatter_chart_options, height="400px")
+                                fig, ax = plt.subplots(figsize=(10, 5))
+                                ax.imshow(wordcloud, interpolation='bilinear')
+                                ax.axis("off")
+                                ax.set_title(f"Word Cloud for {col}")
+                                st.pyplot(fig)
+                                plt.close(fig)
 
 
     elif choice == "Machine Learning":
