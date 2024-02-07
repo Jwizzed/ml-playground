@@ -1,7 +1,8 @@
 matplotlib==3.7.1
-numpy==1.25.1
-pandas==1.5.2
-scikit_learn==1.4.0
+numpy==1.25.2
+pandas==1.5.3
+pycaret==3.2.0
+scikit_learn==1.2.2
 seaborn==0.13.2
 streamlit==1.31.0
 streamlit_echarts==0.4.0

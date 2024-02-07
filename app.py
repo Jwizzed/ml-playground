@@ -1,5 +1,7 @@
 import streamlit as st
 from eda_section.eda import EDAApp
+from ml_section.ml import MachineLearningApp
+import pandas as pd
 
 
 def info():
@@ -29,10 +31,21 @@ def main():
     choice = info()
 
     if choice == "Exploratory Data Analysis":
-        EDAApp().run()
+        uploaded_file = st.file_uploader("Upload your CSV file for EDA", type=["csv"])
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            EDAApp(df).run()
+        else:
+            st.warning("Please upload a CSV file to continue.")
 
     elif choice == "Machine Learning":
-        st.write("Machine Learning section to be implemented.")
+        uploaded_file = st.file_uploader(
+            "Upload your CSV file for Machine Learning", type=["csv"])
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            MachineLearningApp(df=df).run()
+        else:
+            st.warning("Please upload a CSV file to continue.")
 
     elif choice == "Others":
         st.write("Other functionalities to be implemented.")
