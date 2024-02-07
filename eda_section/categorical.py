@@ -23,7 +23,7 @@ class CategoricalAnalysis:
                 progress_text = st.empty()
                 progress_placeholder = st.empty()
 
-                progress_text.text("Progress: 0%, Starting...")
+                progress_text.text("Progress: 0%, Starting.. (This should take around 30 seconds to complete)")
                 progress_placeholder.progress(0)
 
                 st.write(self.categorical_columns)
