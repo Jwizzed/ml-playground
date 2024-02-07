@@ -7,11 +7,12 @@ class SummaryStatistics:
     def __init__(self, df, tab):
         self.df = df
         self.tab = tab
-        self.col1, self.col2, self.col3 = st.columns(3)
+        self.col1, self.col2, self.col3 = None, None, None
 
     def display_summary_statistics(self):
         """Display the summary statistics of the dataframe."""
         with self.tab:
+            self.col1, self.col2, self.col3 = st.columns(3)
             self.display_missing_values()
             self.display_data_types()
             self.display_descriptive_statistics()
